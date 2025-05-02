@@ -3,8 +3,8 @@ package v1
 import (
 	"context"
 	"log/slog"
-	"sync"
 	"strconv"
+	"sync"
 
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
@@ -27,7 +27,7 @@ func InitSemanticSearch(config semantic.Config) error {
 	semanticSearchMutex.Lock()
 	defer semanticSearchMutex.Unlock()
 
-	embeddingClient := semantic.NewEmbeddingClient(config.APIKey, config.BaseURL, config.EmbeddingModel)
+	embeddingClient := semantic.NewEmbeddingClient(config.APIKey, config.BaseURL, config.EmbeddingModel, config.QueryInstruction)
 	semanticSearcher = semantic.NewVectorIndex(embeddingClient)
 
 	isIndexed = false

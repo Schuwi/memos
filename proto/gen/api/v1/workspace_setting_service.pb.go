@@ -605,8 +605,10 @@ type WorkspaceSemanticSetting struct {
 	BaseUrl string `protobuf:"bytes,3,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
 	// Model to use for embeddings.
 	EmbeddingModel string `protobuf:"bytes,4,opt,name=embedding_model,json=embeddingModel,proto3" json:"embedding_model,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Custom instruction prepended to search queries to improve semantic search results.
+	QueryInstruction string `protobuf:"bytes,5,opt,name=query_instruction,json=queryInstruction,proto3" json:"query_instruction,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *WorkspaceSemanticSetting) Reset() {
@@ -663,6 +665,13 @@ func (x *WorkspaceSemanticSetting) GetBaseUrl() string {
 func (x *WorkspaceSemanticSetting) GetEmbeddingModel() string {
 	if x != nil {
 		return x.EmbeddingModel
+	}
+	return ""
+}
+
+func (x *WorkspaceSemanticSetting) GetQueryInstruction() string {
+	if x != nil {
+		return x.QueryInstruction
 	}
 	return ""
 }
@@ -901,12 +910,13 @@ const file_api_v1_workspace_setting_service_proto_rawDesc = "" +
 	" \x03(\tR\treactions\x12<\n" +
 	"\x1adisable_markdown_shortcuts\x18\v \x01(\bR\x18disableMarkdownShortcuts\x127\n" +
 	"\x18enable_blur_nsfw_content\x18\f \x01(\bR\x15enableBlurNsfwContent\x12\x1b\n" +
-	"\tnsfw_tags\x18\r \x03(\tR\bnsfwTagsJ\x04\b\x04\x10\x05\"\x91\x01\n" +
+	"\tnsfw_tags\x18\r \x03(\tR\bnsfwTagsJ\x04\b\x04\x10\x05\"\xbe\x01\n" +
 	"\x18WorkspaceSemanticSetting\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x17\n" +
 	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x19\n" +
 	"\bbase_url\x18\x03 \x01(\tR\abaseUrl\x12'\n" +
-	"\x0fembedding_model\x18\x04 \x01(\tR\x0eembeddingModel\"5\n" +
+	"\x0fembedding_model\x18\x04 \x01(\tR\x0eembeddingModel\x12+\n" +
+	"\x11query_instruction\x18\x05 \x01(\tR\x10queryInstruction\"5\n" +
 	"\x1aGetWorkspaceSettingRequest\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tB\x03\xe0A\x02R\x04name\"V\n" +
 	"\x1aSetWorkspaceSettingRequest\x128\n" +

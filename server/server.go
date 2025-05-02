@@ -169,13 +169,14 @@ func (s *Server) initSemanticSearchIfEnabled(ctx context.Context) {
 	// Check if semantic search is enabled
 	if semanticSetting != nil && semanticSetting.Enabled {
 		slog.Info("Initializing semantic search service")
-		
+
 		config := semantic.Config{
-			APIKey:         semanticSetting.ApiKey,
-			BaseURL:        semanticSetting.BaseUrl,
-			EmbeddingModel: semanticSetting.EmbeddingModel,
+			APIKey:           semanticSetting.ApiKey,
+			BaseURL:          semanticSetting.BaseUrl,
+			EmbeddingModel:   semanticSetting.EmbeddingModel,
+			QueryInstruction: semanticSetting.QueryInstruction,
 		}
-		
+
 		// Use default values if not specified
 		if config.BaseURL == "" {
 			config.BaseURL = "https://api.openai.com/v1"
@@ -183,7 +184,7 @@ func (s *Server) initSemanticSearchIfEnabled(ctx context.Context) {
 		if config.EmbeddingModel == "" {
 			config.EmbeddingModel = semantic.DefaultEmbeddingModel
 		}
-		
+
 		// Initialize semantic search
 		if err := apiv1.InitSemanticSearch(config); err != nil {
 			slog.Error("Failed to initialize semantic search", "error", err)

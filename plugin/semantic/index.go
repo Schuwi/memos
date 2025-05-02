@@ -13,6 +13,8 @@ import (
 const (
 	// DefaultEmbeddingModel is the default model for generating embeddings
 	DefaultEmbeddingModel = "text-embedding-ada-002"
+	// DefaultQueryInstruction is the default instruction for semantic search queries
+	DefaultQueryInstruction = "Instruct: Given a query, look for notes that could be related in any way\nQuery: "
 )
 
 // Config holds the configuration for the semantic search service
@@ -23,6 +25,8 @@ type Config struct {
 	BaseURL string
 	// EmbeddingModel is the model to use for generating embeddings
 	EmbeddingModel string
+	// QueryInstruction is the instruction to prepend to the query for better semantic search results
+	QueryInstruction string
 }
 
 // Document represents a document to be indexed for semantic search.
@@ -35,13 +39,13 @@ type Document struct {
 
 // VectorIndex manages embeddings and provides semantic search capabilities.
 type VectorIndex struct {
-	client         *EmbeddingClient
-	index          *hnsw.Graph[int]
-	documents      map[string]*Document
-	idToNodeID     map[string]int
-	nodeIDToID     map[int]string
-	mu             sync.RWMutex
-	nextNodeID     int
+	client     *EmbeddingClient
+	index      *hnsw.Graph[int]
+	documents  map[string]*Document
+	idToNodeID map[string]int
+	nodeIDToID map[int]string
+	mu         sync.RWMutex
+	nextNodeID int
 }
 
 // SearchResult represents a result from a semantic search
@@ -56,27 +60,15 @@ type SearchResult struct {
 
 // NewVectorIndex creates a new semantic vector index.
 func NewVectorIndex(client *EmbeddingClient) *VectorIndex {
-	// Default HNSW parameters
-	// efConstruction := 200
-	// efSearch := 100
-	// M := 16
-
-	// // Create HNSW index
-	// config := &hnsw.Config{}
-	// config.Distance = hnsw.CosineDistance
-	// config.M = M
-	// config.MaxElements = maxElements
-	// config.EfConstruction = efConstruction
-
 	index := hnsw.NewGraph[int]()
 
 	return &VectorIndex{
-		client:         client,
-		index:          index,
-		documents:      make(map[string]*Document),
-		idToNodeID:     make(map[string]int),
-		nodeIDToID:     make(map[int]string),
-		nextNodeID:     0,
+		client:     client,
+		index:      index,
+		documents:  make(map[string]*Document),
+		idToNodeID: make(map[string]int),
+		nodeIDToID: make(map[int]string),
+		nextNodeID: 0,
 	}
 }
 
@@ -116,7 +108,7 @@ func (vi *VectorIndex) AddDocument(ctx context.Context, doc *Document) error {
 
 	// Add to HNSW index with proper type conversion
 	vi.index.Add(hnsw.MakeNode(nodeID, embedding))
-	
+
 	// Store mappings
 	vi.documents[doc.ID] = doc
 	vi.idToNodeID[doc.ID] = nodeID
@@ -155,7 +147,7 @@ func (vi *VectorIndex) AddDocuments(ctx context.Context, docs []*Document) error
 	for i, doc := range docs {
 		// Store the embedding in the document
 		doc.Vector = embeddings[i]
-		
+
 		// Check if document already exists
 		if _, exists := vi.documents[doc.ID]; exists {
 			// Remove existing document first
@@ -169,7 +161,7 @@ func (vi *VectorIndex) AddDocuments(ctx context.Context, docs []*Document) error
 
 		// Add to HNSW index
 		vi.index.Add(hnsw.MakeNode(nodeID, embeddings[i]))
-		
+
 		// Store mappings
 		vi.documents[doc.ID] = doc
 		vi.idToNodeID[doc.ID] = nodeID
@@ -203,8 +195,11 @@ func (vi *VectorIndex) Search(ctx context.Context, queryText string, limit int) 
 		return nil, errors.New("empty query text")
 	}
 
-	// Generate embedding for the query
-	queryEmbedding, err := vi.client.GetEmbedding(ctx, queryText)
+	// Use the configured query instruction
+	queryInstruction := vi.client.config.QueryInstruction
+
+	// Generate embedding for the query with the instruction
+	queryEmbedding, err := vi.client.GetEmbedding(ctx, queryInstruction+queryText)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate embedding for query: %w", err)
 	}
@@ -227,7 +222,7 @@ func (vi *VectorIndex) SearchByVector(queryVector []float32, limit int) ([]Searc
 
 	// Perform search
 	results := vi.index.Search(queryVector, limit)
-	
+
 	// Convert to SearchResults
 	searchResults := make([]SearchResult, 0, len(results))
 	for _, result := range results {

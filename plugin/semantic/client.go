@@ -14,21 +14,28 @@ type EmbeddingClient struct {
 	client    *openai.Client
 	modelName string
 	timeout   time.Duration
+	config    Config // Store the configuration
 }
 
 // NewEmbeddingClient creates a new client for generating embeddings.
-func NewEmbeddingClient(apiKey, baseURL, modelName string) *EmbeddingClient {
+func NewEmbeddingClient(apiKey, baseURL, modelName, queryInstruction string) *EmbeddingClient {
 	config := openai.DefaultConfig(apiKey)
 	if baseURL != "" {
 		config.BaseURL = baseURL
 	}
-	
+
 	client := openai.NewClientWithConfig(config)
-	
+
 	return &EmbeddingClient{
 		client:    client,
 		modelName: modelName,
 		timeout:   30 * time.Second,
+		config: Config{
+			APIKey:           apiKey,
+			BaseURL:          baseURL,
+			EmbeddingModel:   modelName,
+			QueryInstruction: queryInstruction,
+		},
 	}
 }
 

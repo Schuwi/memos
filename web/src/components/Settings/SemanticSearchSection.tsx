@@ -10,25 +10,30 @@ import { WorkspaceSettingKey } from "@/store/v2/workspace";
 import { WorkspaceSemanticSetting } from "@/types/proto/api/v1/workspace_setting_service";
 import { useTranslate } from "@/utils/i18n";
 
+const DEFAULT_QUERY_INSTRUCTION = "Instruct: Given a query, look for notes that could be related in any way\nQuery: ";
+
 const SemanticSearchSection = () => {
   const t = useTranslate();
+  const initialSetting = workspaceStore.getWorkspaceSettingByKey(WorkspaceSettingKey.SEMANTIC).semanticSetting;
+
   const [workspaceSemanticSetting, setWorkspaceSemanticSetting] = useState<WorkspaceSemanticSetting>(
-    workspaceStore.getWorkspaceSettingByKey(WorkspaceSettingKey.SEMANTIC).semanticSetting ||
-      WorkspaceSemanticSetting.fromPartial({
-        enabled: false,
-        apiKey: "",
-        baseUrl: "https://api.openai.com/v1",
-        embeddingModel: "text-embedding-ada-002",
-      }),
+    initialSetting || {
+      enabled: false,
+      apiKey: "",
+      baseUrl: "https://api.openai.com/v1",
+      embeddingModel: "text-embedding-ada-002",
+      queryInstruction: DEFAULT_QUERY_INSTRUCTION,
+    },
   );
+
   const [initialWorkspaceSemanticSetting, setInitialWorkspaceSemanticSetting] = useState<WorkspaceSemanticSetting>(
-    workspaceStore.getWorkspaceSettingByKey(WorkspaceSettingKey.SEMANTIC).semanticSetting ||
-      WorkspaceSemanticSetting.fromPartial({
-        enabled: false,
-        apiKey: "",
-        baseUrl: "https://api.openai.com/v1",
-        embeddingModel: "text-embedding-ada-002",
-      }),
+    initialSetting || {
+      enabled: false,
+      apiKey: "",
+      baseUrl: "https://api.openai.com/v1",
+      embeddingModel: "text-embedding-ada-002",
+      queryInstruction: DEFAULT_QUERY_INSTRUCTION,
+    },
   );
 
   const handleEnabledChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +61,13 @@ const SemanticSearchSection = () => {
     setWorkspaceSemanticSetting({
       ...workspaceSemanticSetting,
       embeddingModel: value,
+    });
+  };
+
+  const handleQueryInstructionChanged = (value: string) => {
+    setWorkspaceSemanticSetting({
+      ...workspaceSemanticSetting,
+      queryInstruction: value,
     });
   };
 
@@ -119,6 +131,24 @@ const SemanticSearchSection = () => {
                 value={workspaceSemanticSetting.embeddingModel}
                 placeholder="text-embedding-ada-002"
                 onChange={(e) => handleEmbeddingModelChanged(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="form-label mt-4">
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium">{t("setting.semantic-search-section.query-instruction") || "Query Instruction"}</span>
+              <p className="text-xs text-gray-500">
+                {t("setting.semantic-search-section.query-instruction-description") ||
+                  "Custom instruction prepended to search queries to improve semantic search results."}
+              </p>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                rows={4}
+                value={workspaceSemanticSetting.queryInstruction}
+                placeholder={DEFAULT_QUERY_INSTRUCTION}
+                onChange={(e) => handleQueryInstructionChanged(e.target.value)}
+                style={{ minHeight: "100px", resize: "vertical" }}
               />
             </div>
           </div>

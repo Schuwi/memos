@@ -302,7 +302,9 @@
       "api-key-placeholder": "Your API Key",
       "base-url": "Base URL",
       "embedding-model": "Embedding model",
-      "embeddings": "Learn more about embeddings"
+      "embeddings": "Learn more about embeddings",
+      "query-instruction": "Query Instruction",
+      "query-instruction-description": "Custom instruction prepended to search queries to improve semantic search results."
     },
     "sso": "SSO",
     "sso-section": {

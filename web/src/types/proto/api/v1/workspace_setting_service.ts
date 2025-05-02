@@ -160,6 +160,8 @@ export interface WorkspaceSemanticSetting {
   baseUrl: string;
   /** Model to use for embeddings. */
   embeddingModel: string;
+  /** Custom instruction prepended to search queries to improve semantic search results. */
+  queryInstruction: string;
 }
 
 export interface GetWorkspaceSettingRequest {
@@ -892,7 +894,7 @@ export const WorkspaceMemoRelatedSetting: MessageFns<WorkspaceMemoRelatedSetting
 };
 
 function createBaseWorkspaceSemanticSetting(): WorkspaceSemanticSetting {
-  return { enabled: false, apiKey: "", baseUrl: "", embeddingModel: "" };
+  return { enabled: false, apiKey: "", baseUrl: "", embeddingModel: "", queryInstruction: "" };
 }
 
 export const WorkspaceSemanticSetting: MessageFns<WorkspaceSemanticSetting> = {
@@ -908,6 +910,9 @@ export const WorkspaceSemanticSetting: MessageFns<WorkspaceSemanticSetting> = {
     }
     if (message.embeddingModel !== "") {
       writer.uint32(34).string(message.embeddingModel);
+    }
+    if (message.queryInstruction !== "") {
+      writer.uint32(42).string(message.queryInstruction);
     }
     return writer;
   },
@@ -951,6 +956,14 @@ export const WorkspaceSemanticSetting: MessageFns<WorkspaceSemanticSetting> = {
           message.embeddingModel = reader.string();
           continue;
         }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.queryInstruction = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -969,6 +982,7 @@ export const WorkspaceSemanticSetting: MessageFns<WorkspaceSemanticSetting> = {
     message.apiKey = object.apiKey ?? "";
     message.baseUrl = object.baseUrl ?? "";
     message.embeddingModel = object.embeddingModel ?? "";
+    message.queryInstruction = object.queryInstruction ?? "";
     return message;
   },
 };

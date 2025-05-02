@@ -2391,6 +2391,9 @@ definitions:
       embeddingModel:
         type: string
         description: Model to use for embeddings.
+      queryInstruction:
+        type: string
+        description: Custom instruction prepended to search queries to improve semantic search results.
   apiv1WorkspaceSetting:
     type: object
     properties:

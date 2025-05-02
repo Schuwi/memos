@@ -133,4 +133,6 @@ message WorkspaceSemanticSetting {
   string base_url = 3;
   // Model to use for embeddings.
   string embedding_model = 4;
+  // Custom instruction prepended to search queries to improve semantic search results.
+  string query_instruction = 5;
 }
