@@ -116,6 +116,14 @@ service MemoService {
     option (google.api.http) = {delete: "/api/v1/reactions/{id}"};
     option (google.api.method_signature) = "id";
   }
+
+  // SemanticSearchMemos performs a semantic search on memos using embedding similarity.
+  rpc SemanticSearchMemos(SemanticSearchMemosRequest) returns (SemanticSearchMemosResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/memos:semanticSearch"
+      body: "*"
+    };
+  }
 }
 
 enum Visibility {
@@ -360,4 +368,30 @@ message DeleteMemoReactionRequest {
   // The id of the reaction.
   // Refer to the `Reaction.id`.
   int32 id = 1;
+}
+
+// Semantic search messages
+message SemanticSearchMemosRequest {
+  // The search query text to find semantically similar memos
+  string query = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The maximum number of memos to return
+  int32 limit = 2;
+
+  // The parent is the owner of the memos.
+  // If not specified or `users/-`, it will search all accessible memos.
+  string parent = 3;
+}
+
+message SemanticSearchMemosResponse {
+  // Search results ordered by semantic relevance
+  repeated SemanticSearchResult results = 1;
+  
+  message SemanticSearchResult {
+    // The memo that matched the query
+    Memo memo = 1;
+    
+    // The similarity score between the query and memo (higher is more similar)
+    float score = 2;
+  }
 }

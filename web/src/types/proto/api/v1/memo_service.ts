@@ -331,6 +331,33 @@ export interface DeleteMemoReactionRequest {
   id: number;
 }
 
+/** Semantic search messages */
+export interface SemanticSearchMemosRequest {
+  /** The search query text to find semantically similar memos */
+  query: string;
+  /** The maximum number of memos to return */
+  limit: number;
+  /**
+   * The parent is the owner of the memos.
+   * If not specified or `users/-`, it will search all accessible memos.
+   */
+  parent: string;
+}
+
+export interface SemanticSearchMemosResponse {
+  /** Search results ordered by semantic relevance */
+  results: SemanticSearchMemosResponse_SemanticSearchResult[];
+}
+
+export interface SemanticSearchMemosResponse_SemanticSearchResult {
+  /** The memo that matched the query */
+  memo?:
+    | Memo
+    | undefined;
+  /** The similarity score between the query and memo (higher is more similar) */
+  score: number;
+}
+
 function createBaseMemo(): Memo {
   return {
     name: "",
@@ -2083,6 +2110,189 @@ export const DeleteMemoReactionRequest: MessageFns<DeleteMemoReactionRequest> = 
   },
 };
 
+function createBaseSemanticSearchMemosRequest(): SemanticSearchMemosRequest {
+  return { query: "", limit: 0, parent: "" };
+}
+
+export const SemanticSearchMemosRequest: MessageFns<SemanticSearchMemosRequest> = {
+  encode(message: SemanticSearchMemosRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.query !== "") {
+      writer.uint32(10).string(message.query);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(16).int32(message.limit);
+    }
+    if (message.parent !== "") {
+      writer.uint32(26).string(message.parent);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SemanticSearchMemosRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSemanticSearchMemosRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.query = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.limit = reader.int32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.parent = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<SemanticSearchMemosRequest>): SemanticSearchMemosRequest {
+    return SemanticSearchMemosRequest.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<SemanticSearchMemosRequest>): SemanticSearchMemosRequest {
+    const message = createBaseSemanticSearchMemosRequest();
+    message.query = object.query ?? "";
+    message.limit = object.limit ?? 0;
+    message.parent = object.parent ?? "";
+    return message;
+  },
+};
+
+function createBaseSemanticSearchMemosResponse(): SemanticSearchMemosResponse {
+  return { results: [] };
+}
+
+export const SemanticSearchMemosResponse: MessageFns<SemanticSearchMemosResponse> = {
+  encode(message: SemanticSearchMemosResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.results) {
+      SemanticSearchMemosResponse_SemanticSearchResult.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SemanticSearchMemosResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSemanticSearchMemosResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.results.push(SemanticSearchMemosResponse_SemanticSearchResult.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<SemanticSearchMemosResponse>): SemanticSearchMemosResponse {
+    return SemanticSearchMemosResponse.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<SemanticSearchMemosResponse>): SemanticSearchMemosResponse {
+    const message = createBaseSemanticSearchMemosResponse();
+    message.results = object.results?.map((e) => SemanticSearchMemosResponse_SemanticSearchResult.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseSemanticSearchMemosResponse_SemanticSearchResult(): SemanticSearchMemosResponse_SemanticSearchResult {
+  return { memo: undefined, score: 0 };
+}
+
+export const SemanticSearchMemosResponse_SemanticSearchResult: MessageFns<
+  SemanticSearchMemosResponse_SemanticSearchResult
+> = {
+  encode(
+    message: SemanticSearchMemosResponse_SemanticSearchResult,
+    writer: BinaryWriter = new BinaryWriter(),
+  ): BinaryWriter {
+    if (message.memo !== undefined) {
+      Memo.encode(message.memo, writer.uint32(10).fork()).join();
+    }
+    if (message.score !== 0) {
+      writer.uint32(21).float(message.score);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SemanticSearchMemosResponse_SemanticSearchResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSemanticSearchMemosResponse_SemanticSearchResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.memo = Memo.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 21) {
+            break;
+          }
+
+          message.score = reader.float();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(
+    base?: DeepPartial<SemanticSearchMemosResponse_SemanticSearchResult>,
+  ): SemanticSearchMemosResponse_SemanticSearchResult {
+    return SemanticSearchMemosResponse_SemanticSearchResult.fromPartial(base ?? {});
+  },
+  fromPartial(
+    object: DeepPartial<SemanticSearchMemosResponse_SemanticSearchResult>,
+  ): SemanticSearchMemosResponse_SemanticSearchResult {
+    const message = createBaseSemanticSearchMemosResponse_SemanticSearchResult();
+    message.memo = (object.memo !== undefined && object.memo !== null) ? Memo.fromPartial(object.memo) : undefined;
+    message.score = object.score ?? 0;
+    return message;
+  },
+};
+
 export type MemoServiceDefinition = typeof MemoServiceDefinition;
 export const MemoServiceDefinition = {
   name: "MemoService",
@@ -2910,6 +3120,56 @@ export const MemoServiceDefinition = {
               105,
               100,
               125,
+            ]),
+          ],
+        },
+      },
+    },
+    /** SemanticSearchMemos performs a semantic search on memos using embedding similarity. */
+    semanticSearchMemos: {
+      name: "SemanticSearchMemos",
+      requestType: SemanticSearchMemosRequest,
+      requestStream: false,
+      responseType: SemanticSearchMemosResponse,
+      responseStream: false,
+      options: {
+        _unknownFields: {
+          578365826: [
+            new Uint8Array([
+              33,
+              58,
+              1,
+              42,
+              34,
+              28,
+              47,
+              97,
+              112,
+              105,
+              47,
+              118,
+              49,
+              47,
+              109,
+              101,
+              109,
+              111,
+              115,
+              58,
+              115,
+              101,
+              109,
+              97,
+              110,
+              116,
+              105,
+              99,
+              83,
+              101,
+              97,
+              114,
+              99,
+              104,
             ]),
           ],
         },

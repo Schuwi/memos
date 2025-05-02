@@ -78,6 +78,7 @@
     "save": "Save",
     "search": "Search",
     "select": "Select",
+    "semantic-search": "Semantic Search",
     "settings": "Settings",
     "share": "Share",
     "shortcut-filter": "Shortcut filter",
@@ -293,6 +294,15 @@
       "default-memo-sort-option": "Memo display time",
       "default-memo-visibility": "Default memo visibility",
       "theme": "Theme"
+    },
+    "semantic-search": "Semantic Search",
+    "semantic-search-section": {
+      "enable": "Enable semantic search",
+      "api-key": "API Key",
+      "api-key-placeholder": "Your API Key",
+      "base-url": "Base URL",
+      "embedding-model": "Embedding model",
+      "embeddings": "Learn more about embeddings"
     },
     "sso": "SSO",
     "sso-section": {

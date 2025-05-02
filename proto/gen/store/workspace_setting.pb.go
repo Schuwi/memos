@@ -33,6 +33,8 @@ const (
 	WorkspaceSettingKey_STORAGE WorkspaceSettingKey = 3
 	// MEMO_RELATED is the key for memo related settings.
 	WorkspaceSettingKey_MEMO_RELATED WorkspaceSettingKey = 4
+	// SEMANTIC is the key for semantic search settings.
+	WorkspaceSettingKey_SEMANTIC WorkspaceSettingKey = 5
 )
 
 // Enum value maps for WorkspaceSettingKey.
@@ -43,6 +45,7 @@ var (
 		2: "GENERAL",
 		3: "STORAGE",
 		4: "MEMO_RELATED",
+		5: "SEMANTIC",
 	}
 	WorkspaceSettingKey_value = map[string]int32{
 		"WORKSPACE_SETTING_KEY_UNSPECIFIED": 0,
@@ -50,6 +53,7 @@ var (
 		"GENERAL":                           2,
 		"STORAGE":                           3,
 		"MEMO_RELATED":                      4,
+		"SEMANTIC":                          5,
 	}
 )
 
@@ -144,6 +148,7 @@ type WorkspaceSetting struct {
 	//	*WorkspaceSetting_GeneralSetting
 	//	*WorkspaceSetting_StorageSetting
 	//	*WorkspaceSetting_MemoRelatedSetting
+	//	*WorkspaceSetting_SemanticSetting
 	Value         isWorkspaceSetting_Value `protobuf_oneof:"value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -229,6 +234,15 @@ func (x *WorkspaceSetting) GetMemoRelatedSetting() *WorkspaceMemoRelatedSetting 
 	return nil
 }
 
+func (x *WorkspaceSetting) GetSemanticSetting() *WorkspaceSemanticSetting {
+	if x != nil {
+		if x, ok := x.Value.(*WorkspaceSetting_SemanticSetting); ok {
+			return x.SemanticSetting
+		}
+	}
+	return nil
+}
+
 type isWorkspaceSetting_Value interface {
 	isWorkspaceSetting_Value()
 }
@@ -249,6 +263,10 @@ type WorkspaceSetting_MemoRelatedSetting struct {
 	MemoRelatedSetting *WorkspaceMemoRelatedSetting `protobuf:"bytes,5,opt,name=memo_related_setting,json=memoRelatedSetting,proto3,oneof"`
 }
 
+type WorkspaceSetting_SemanticSetting struct {
+	SemanticSetting *WorkspaceSemanticSetting `protobuf:"bytes,6,opt,name=semantic_setting,json=semanticSetting,proto3,oneof"`
+}
+
 func (*WorkspaceSetting_BasicSetting) isWorkspaceSetting_Value() {}
 
 func (*WorkspaceSetting_GeneralSetting) isWorkspaceSetting_Value() {}
@@ -256,6 +274,8 @@ func (*WorkspaceSetting_GeneralSetting) isWorkspaceSetting_Value() {}
 func (*WorkspaceSetting_StorageSetting) isWorkspaceSetting_Value() {}
 
 func (*WorkspaceSetting_MemoRelatedSetting) isWorkspaceSetting_Value() {}
+
+func (*WorkspaceSetting_SemanticSetting) isWorkspaceSetting_Value() {}
 
 type WorkspaceBasicSetting struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -790,17 +810,90 @@ func (x *WorkspaceMemoRelatedSetting) GetNsfwTags() []string {
 	return nil
 }
 
+type WorkspaceSemanticSetting struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Determines whether semantic search is enabled.
+	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// API key for the semantic search service.
+	ApiKey string `protobuf:"bytes,2,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	// Base URL for the semantic search service.
+	BaseUrl string `protobuf:"bytes,3,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	// Model to use for embeddings.
+	EmbeddingModel string `protobuf:"bytes,4,opt,name=embedding_model,json=embeddingModel,proto3" json:"embedding_model,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *WorkspaceSemanticSetting) Reset() {
+	*x = WorkspaceSemanticSetting{}
+	mi := &file_store_workspace_setting_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkspaceSemanticSetting) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkspaceSemanticSetting) ProtoMessage() {}
+
+func (x *WorkspaceSemanticSetting) ProtoReflect() protoreflect.Message {
+	mi := &file_store_workspace_setting_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkspaceSemanticSetting.ProtoReflect.Descriptor instead.
+func (*WorkspaceSemanticSetting) Descriptor() ([]byte, []int) {
+	return file_store_workspace_setting_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *WorkspaceSemanticSetting) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *WorkspaceSemanticSetting) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *WorkspaceSemanticSetting) GetBaseUrl() string {
+	if x != nil {
+		return x.BaseUrl
+	}
+	return ""
+}
+
+func (x *WorkspaceSemanticSetting) GetEmbeddingModel() string {
+	if x != nil {
+		return x.EmbeddingModel
+	}
+	return ""
+}
+
 var File_store_workspace_setting_proto protoreflect.FileDescriptor
 
 const file_store_workspace_setting_proto_rawDesc = "" +
 	"\n" +
-	"\x1dstore/workspace_setting.proto\x12\vmemos.store\"\x9a\x03\n" +
+	"\x1dstore/workspace_setting.proto\x12\vmemos.store\"\xee\x03\n" +
 	"\x10WorkspaceSetting\x122\n" +
 	"\x03key\x18\x01 \x01(\x0e2 .memos.store.WorkspaceSettingKeyR\x03key\x12I\n" +
 	"\rbasic_setting\x18\x02 \x01(\v2\".memos.store.WorkspaceBasicSettingH\x00R\fbasicSetting\x12O\n" +
 	"\x0fgeneral_setting\x18\x03 \x01(\v2$.memos.store.WorkspaceGeneralSettingH\x00R\x0egeneralSetting\x12O\n" +
 	"\x0fstorage_setting\x18\x04 \x01(\v2$.memos.store.WorkspaceStorageSettingH\x00R\x0estorageSetting\x12\\\n" +
-	"\x14memo_related_setting\x18\x05 \x01(\v2(.memos.store.WorkspaceMemoRelatedSettingH\x00R\x12memoRelatedSettingB\a\n" +
+	"\x14memo_related_setting\x18\x05 \x01(\v2(.memos.store.WorkspaceMemoRelatedSettingH\x00R\x12memoRelatedSetting\x12R\n" +
+	"\x10semantic_setting\x18\x06 \x01(\v2%.memos.store.WorkspaceSemanticSettingH\x00R\x0fsemanticSettingB\a\n" +
 	"\x05value\"]\n" +
 	"\x15WorkspaceBasicSetting\x12\x1d\n" +
 	"\n" +
@@ -852,13 +945,19 @@ const file_store_workspace_setting_proto_rawDesc = "" +
 	" \x03(\tR\treactions\x12<\n" +
 	"\x1adisable_markdown_shortcuts\x18\v \x01(\bR\x18disableMarkdownShortcuts\x127\n" +
 	"\x18enable_blur_nsfw_content\x18\f \x01(\bR\x15enableBlurNsfwContent\x12\x1b\n" +
-	"\tnsfw_tags\x18\r \x03(\tR\bnsfwTagsJ\x04\b\x04\x10\x05*s\n" +
+	"\tnsfw_tags\x18\r \x03(\tR\bnsfwTagsJ\x04\b\x04\x10\x05\"\x91\x01\n" +
+	"\x18WorkspaceSemanticSetting\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x17\n" +
+	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x19\n" +
+	"\bbase_url\x18\x03 \x01(\tR\abaseUrl\x12'\n" +
+	"\x0fembedding_model\x18\x04 \x01(\tR\x0eembeddingModel*\x81\x01\n" +
 	"\x13WorkspaceSettingKey\x12%\n" +
 	"!WORKSPACE_SETTING_KEY_UNSPECIFIED\x10\x00\x12\t\n" +
 	"\x05BASIC\x10\x01\x12\v\n" +
 	"\aGENERAL\x10\x02\x12\v\n" +
 	"\aSTORAGE\x10\x03\x12\x10\n" +
-	"\fMEMO_RELATED\x10\x04B\xa0\x01\n" +
+	"\fMEMO_RELATED\x10\x04\x12\f\n" +
+	"\bSEMANTIC\x10\x05B\xa0\x01\n" +
 	"\x0fcom.memos.storeB\x15WorkspaceSettingProtoP\x01Z)github.com/usememos/memos/proto/gen/store\xa2\x02\x03MSX\xaa\x02\vMemos.Store\xca\x02\vMemos\\Store\xe2\x02\x17Memos\\Store\\GPBMetadata\xea\x02\fMemos::Storeb\x06proto3"
 
 var (
@@ -874,7 +973,7 @@ func file_store_workspace_setting_proto_rawDescGZIP() []byte {
 }
 
 var file_store_workspace_setting_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_store_workspace_setting_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_store_workspace_setting_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_store_workspace_setting_proto_goTypes = []any{
 	(WorkspaceSettingKey)(0),                 // 0: memos.store.WorkspaceSettingKey
 	(WorkspaceStorageSetting_StorageType)(0), // 1: memos.store.WorkspaceStorageSetting.StorageType
@@ -885,6 +984,7 @@ var file_store_workspace_setting_proto_goTypes = []any{
 	(*WorkspaceStorageSetting)(nil),          // 6: memos.store.WorkspaceStorageSetting
 	(*StorageS3Config)(nil),                  // 7: memos.store.StorageS3Config
 	(*WorkspaceMemoRelatedSetting)(nil),      // 8: memos.store.WorkspaceMemoRelatedSetting
+	(*WorkspaceSemanticSetting)(nil),         // 9: memos.store.WorkspaceSemanticSetting
 }
 var file_store_workspace_setting_proto_depIdxs = []int32{
 	0, // 0: memos.store.WorkspaceSetting.key:type_name -> memos.store.WorkspaceSettingKey
@@ -892,14 +992,15 @@ var file_store_workspace_setting_proto_depIdxs = []int32{
 	4, // 2: memos.store.WorkspaceSetting.general_setting:type_name -> memos.store.WorkspaceGeneralSetting
 	6, // 3: memos.store.WorkspaceSetting.storage_setting:type_name -> memos.store.WorkspaceStorageSetting
 	8, // 4: memos.store.WorkspaceSetting.memo_related_setting:type_name -> memos.store.WorkspaceMemoRelatedSetting
-	5, // 5: memos.store.WorkspaceGeneralSetting.custom_profile:type_name -> memos.store.WorkspaceCustomProfile
-	1, // 6: memos.store.WorkspaceStorageSetting.storage_type:type_name -> memos.store.WorkspaceStorageSetting.StorageType
-	7, // 7: memos.store.WorkspaceStorageSetting.s3_config:type_name -> memos.store.StorageS3Config
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	9, // 5: memos.store.WorkspaceSetting.semantic_setting:type_name -> memos.store.WorkspaceSemanticSetting
+	5, // 6: memos.store.WorkspaceGeneralSetting.custom_profile:type_name -> memos.store.WorkspaceCustomProfile
+	1, // 7: memos.store.WorkspaceStorageSetting.storage_type:type_name -> memos.store.WorkspaceStorageSetting.StorageType
+	7, // 8: memos.store.WorkspaceStorageSetting.s3_config:type_name -> memos.store.StorageS3Config
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_store_workspace_setting_proto_init() }
@@ -912,6 +1013,7 @@ func file_store_workspace_setting_proto_init() {
 		(*WorkspaceSetting_GeneralSetting)(nil),
 		(*WorkspaceSetting_StorageSetting)(nil),
 		(*WorkspaceSetting_MemoRelatedSetting)(nil),
+		(*WorkspaceSetting_SemanticSetting)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -919,7 +1021,7 @@ func file_store_workspace_setting_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_store_workspace_setting_proto_rawDesc), len(file_store_workspace_setting_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

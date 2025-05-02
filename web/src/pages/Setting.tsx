@@ -1,5 +1,5 @@
 import { Option, Select } from "@mui/joy";
-import { CogIcon, DatabaseIcon, KeyIcon, LibraryIcon, LucideIcon, Settings2Icon, UserIcon, UsersIcon } from "lucide-react";
+import { CogIcon, DatabaseIcon, KeyIcon, LibraryIcon, LucideIcon, SearchIcon, Settings2Icon, UserIcon, UsersIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -10,6 +10,7 @@ import MyAccountSection from "@/components/Settings/MyAccountSection";
 import PreferencesSection from "@/components/Settings/PreferencesSection";
 import SSOSection from "@/components/Settings/SSOSection";
 import SectionMenuItem from "@/components/Settings/SectionMenuItem";
+import SemanticSearchSection from "@/components/Settings/SemanticSearchSection";
 import StorageSection from "@/components/Settings/StorageSection";
 import WorkspaceSection from "@/components/Settings/WorkspaceSection";
 import useCurrentUser from "@/hooks/useCurrentUser";
@@ -19,14 +20,14 @@ import { WorkspaceSettingKey } from "@/store/v2/workspace";
 import { User_Role } from "@/types/proto/api/v1/user_service";
 import { useTranslate } from "@/utils/i18n";
 
-type SettingSection = "my-account" | "preference" | "member" | "system" | "memo-related" | "storage" | "sso";
+type SettingSection = "my-account" | "preference" | "member" | "system" | "memo-related" | "storage" | "sso" | "semantic-search";
 
 interface State {
   selectedSection: SettingSection;
 }
 
 const BASIC_SECTIONS: SettingSection[] = ["my-account", "preference"];
-const ADMIN_SECTIONS: SettingSection[] = ["member", "system", "memo-related", "storage", "sso"];
+const ADMIN_SECTIONS: SettingSection[] = ["member", "system", "memo-related", "storage", "sso", "semantic-search"];
 const SECTION_ICON_MAP: Record<SettingSection, LucideIcon> = {
   "my-account": UserIcon,
   preference: CogIcon,
@@ -35,6 +36,19 @@ const SECTION_ICON_MAP: Record<SettingSection, LucideIcon> = {
   "memo-related": LibraryIcon,
   storage: DatabaseIcon,
   sso: KeyIcon,
+  "semantic-search": SearchIcon,
+};
+
+// Section name mapping for avoiding dynamic translation keys
+const SECTION_NAME_MAP: Record<SettingSection, string> = {
+  "my-account": "My Account",
+  preference: "Preferences",
+  member: "Members",
+  system: "System",
+  "memo-related": "Memo Settings",
+  storage: "Storage",
+  sso: "SSO",
+  "semantic-search": "Semantic Search",
 };
 
 const Setting = observer(() => {
@@ -94,7 +108,7 @@ const Setting = observer(() => {
               {BASIC_SECTIONS.map((item) => (
                 <SectionMenuItem
                   key={item}
-                  text={t(`setting.${item}`)}
+                  text={SECTION_NAME_MAP[item]}
                   icon={SECTION_ICON_MAP[item]}
                   isSelected={state.selectedSection === item}
                   onClick={() => handleSectionSelectorItemClick(item)}
@@ -108,7 +122,7 @@ const Setting = observer(() => {
                   {ADMIN_SECTIONS.map((item) => (
                     <SectionMenuItem
                       key={item}
-                      text={t(`setting.${item}`)}
+                      text={SECTION_NAME_MAP[item]}
                       icon={SECTION_ICON_MAP[item]}
                       isSelected={state.selectedSection === item}
                       onClick={() => handleSectionSelectorItemClick(item)}
@@ -126,7 +140,7 @@ const Setting = observer(() => {
               <Select value={state.selectedSection} onChange={(_, value) => handleSectionSelectorItemClick(value as SettingSection)}>
                 {settingsSectionList.map((settingSection) => (
                   <Option key={settingSection} value={settingSection}>
-                    {t(`setting.${settingSection}`)}
+                    {SECTION_NAME_MAP[settingSection]}
                   </Option>
                 ))}
               </Select>
@@ -145,6 +159,8 @@ const Setting = observer(() => {
               <StorageSection />
             ) : state.selectedSection === "sso" ? (
               <SSOSection />
+            ) : state.selectedSection === "semantic-search" ? (
+              <SemanticSearchSection />
             ) : null}
           </div>
         </div>

@@ -17,6 +17,7 @@ import (
 	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
 
+	"github.com/usememos/memos/plugin/semantic"
 	storepb "github.com/usememos/memos/proto/gen/store"
 	"github.com/usememos/memos/server/profile"
 	apiv1 "github.com/usememos/memos/server/router/api/v1"
@@ -150,7 +151,46 @@ func (s *Server) StartBackgroundRunners(ctx context.Context) {
 	// Rebuild all memos' payload after server starts.
 	memopayloadRunner.RunOnce(ctx)
 
+	// Initialize semantic search if enabled in settings
+	s.initSemanticSearchIfEnabled(ctx)
+
 	go s3presignRunner.Run(ctx)
+}
+
+// initSemanticSearchIfEnabled initializes the semantic search service if it's enabled in workspace settings.
+func (s *Server) initSemanticSearchIfEnabled(ctx context.Context) {
+	// Get semantic search settings
+	semanticSetting, err := s.Store.GetWorkspaceSemanticSetting(ctx)
+	if err != nil {
+		slog.Error("Failed to get workspace semantic settings", "error", err)
+		return
+	}
+
+	// Check if semantic search is enabled
+	if semanticSetting != nil && semanticSetting.Enabled {
+		slog.Info("Initializing semantic search service")
+		
+		config := semantic.Config{
+			APIKey:         semanticSetting.ApiKey,
+			BaseURL:        semanticSetting.BaseUrl,
+			EmbeddingModel: semanticSetting.EmbeddingModel,
+		}
+		
+		// Use default values if not specified
+		if config.BaseURL == "" {
+			config.BaseURL = "https://api.openai.com/v1"
+		}
+		if config.EmbeddingModel == "" {
+			config.EmbeddingModel = semantic.DefaultEmbeddingModel
+		}
+		
+		// Initialize semantic search
+		if err := apiv1.InitSemanticSearch(config); err != nil {
+			slog.Error("Failed to initialize semantic search", "error", err)
+		} else {
+			slog.Info("Semantic search service initialized successfully")
+		}
+	}
 }
 
 func (s *Server) getOrUpsertWorkspaceBasicSetting(ctx context.Context) (*storepb.WorkspaceBasicSetting, error) {

@@ -29,6 +29,8 @@ func (s *APIV1Service) GetWorkspaceSetting(ctx context.Context, request *v1pb.Ge
 		_, err = s.Store.GetWorkspaceMemoRelatedSetting(ctx)
 	case storepb.WorkspaceSettingKey_STORAGE:
 		_, err = s.Store.GetWorkspaceStorageSetting(ctx)
+	case storepb.WorkspaceSettingKey_SEMANTIC:
+		_, err = s.Store.GetWorkspaceSemanticSetting(ctx)
 	default:
 		return nil, status.Errorf(codes.InvalidArgument, "unsupported workspace setting key: %v", workspaceSettingKey)
 	}
@@ -46,7 +48,7 @@ func (s *APIV1Service) GetWorkspaceSetting(ctx context.Context, request *v1pb.Ge
 		return nil, status.Errorf(codes.NotFound, "workspace setting not found")
 	}
 
-	// For storage setting, only host can get it.
+	// For storage settings, only host can get them.
 	if workspaceSetting.Key == storepb.WorkspaceSettingKey_STORAGE {
 		user, err := s.GetCurrentUser(ctx)
 		if err != nil {
@@ -54,6 +56,32 @@ func (s *APIV1Service) GetWorkspaceSetting(ctx context.Context, request *v1pb.Ge
 		}
 		if user == nil || user.Role != store.RoleHost {
 			return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+		}
+	}
+
+	// For semantic settings, regular users can only see 'enabled' status
+	if workspaceSetting.Key == storepb.WorkspaceSettingKey_SEMANTIC {
+		user, err := s.GetCurrentUser(ctx)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to get current user: %v", err)
+		}
+		if user == nil || user.Role != store.RoleHost {
+			// Return only the enabled flag, without sensitive information
+			semanticSetting := workspaceSetting.GetSemanticSetting()
+			if semanticSetting != nil {
+				return &v1pb.WorkspaceSetting{
+					Name: fmt.Sprintf("%s%s", WorkspaceSettingNamePrefix, workspaceSetting.Key.String()),
+					Value: &v1pb.WorkspaceSetting_SemanticSetting{
+						SemanticSetting: &v1pb.WorkspaceSemanticSetting{
+							Enabled: semanticSetting.Enabled,
+							// Hide sensitive fields for non-host users
+							ApiKey:         "",
+							BaseUrl:        "",
+							EmbeddingModel: "",
+						},
+					},
+				}, nil
+			}
 		}
 	}
 
@@ -70,6 +98,61 @@ func (s *APIV1Service) SetWorkspaceSetting(ctx context.Context, request *v1pb.Se
 	}
 
 	updateSetting := convertWorkspaceSettingToStore(request.Setting)
+
+	// Handle semantic search setting changes
+	if updateSetting.Key == storepb.WorkspaceSettingKey_SEMANTIC {
+		// Get the existing semantic setting to compare
+		existingSettings, err := s.Store.GetWorkspaceSemanticSetting(ctx)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to get existing workspace semantic setting: %v", err)
+		}
+
+		// Get the new semantic setting
+		newSettings := updateSetting.GetSemanticSetting()
+
+		// Check if the enabled state has changed or if settings were modified while enabled
+		if existingSettings != nil && (existingSettings.Enabled != newSettings.Enabled ||
+			(newSettings.Enabled && (existingSettings.ApiKey != newSettings.ApiKey ||
+				existingSettings.BaseUrl != newSettings.BaseUrl ||
+				existingSettings.EmbeddingModel != newSettings.EmbeddingModel))) {
+
+			slog.Info("Semantic search settings changed",
+				"previousEnabled", existingSettings.Enabled,
+				"newEnabled", newSettings.Enabled)
+
+			// Initialize semantic search if it's being enabled or settings were changed while enabled
+			if newSettings.Enabled {
+				slog.Info("Initializing semantic search with updated settings")
+				config := semantic.Config{
+					APIKey:         newSettings.ApiKey,
+					BaseURL:        newSettings.BaseUrl,
+					EmbeddingModel: newSettings.EmbeddingModel,
+				}
+
+				// Use defaults if not specified
+				if config.BaseURL == "" {
+					config.BaseURL = "https://api.openai.com/v1"
+				}
+				if config.EmbeddingModel == "" {
+					config.EmbeddingModel = semantic.DefaultEmbeddingModel
+				}
+
+				if err := InitSemanticSearch(config); err != nil {
+					slog.Error("Failed to initialize semantic search with updated settings", "error", err)
+					return nil, status.Errorf(codes.Internal, "failed to initialize semantic search: %v", err)
+				}
+				slog.Info("Semantic search initialized successfully")
+			} else {
+				// Uninitialize semantic search if it's being disabled
+				slog.Info("Disabling semantic search")
+				semanticSearchMutex.Lock()
+				semanticSearcher = nil
+				isIndexed = false
+				semanticSearchMutex.Unlock()
+			}
+		}
+	}
+
 	workspaceSetting, err := s.Store.UpsertWorkspaceSetting(ctx, updateSetting)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to upsert workspace setting: %v", err)
@@ -78,24 +161,34 @@ func (s *APIV1Service) SetWorkspaceSetting(ctx context.Context, request *v1pb.Se
 	return convertWorkspaceSettingFromStore(workspaceSetting), nil
 }
 
-func convertWorkspaceSettingFromStore(setting *storepb.WorkspaceSetting) *v1pb.WorkspaceSetting {
+func convertWorkspaceSettingFromStore(storeWorkspaceSetting *storepb.WorkspaceSetting) *v1pb.WorkspaceSetting {
+	if storeWorkspaceSetting == nil {
+		return nil
+	}
+
 	workspaceSetting := &v1pb.WorkspaceSetting{
-		Name: fmt.Sprintf("%s%s", WorkspaceSettingNamePrefix, setting.Key.String()),
+		Name: fmt.Sprintf("%s%s", WorkspaceSettingNamePrefix, storeWorkspaceSetting.Key.String()),
 	}
-	switch setting.Value.(type) {
-	case *storepb.WorkspaceSetting_GeneralSetting:
+
+	switch storeWorkspaceSetting.Key {
+	case storepb.WorkspaceSettingKey_GENERAL:
 		workspaceSetting.Value = &v1pb.WorkspaceSetting_GeneralSetting{
-			GeneralSetting: convertWorkspaceGeneralSettingFromStore(setting.GetGeneralSetting()),
+			GeneralSetting: convertWorkspaceGeneralSettingFromStore(storeWorkspaceSetting.GetGeneralSetting()),
 		}
-	case *storepb.WorkspaceSetting_StorageSetting:
+	case storepb.WorkspaceSettingKey_STORAGE:
 		workspaceSetting.Value = &v1pb.WorkspaceSetting_StorageSetting{
-			StorageSetting: convertWorkspaceStorageSettingFromStore(setting.GetStorageSetting()),
+			StorageSetting: convertWorkspaceStorageSettingFromStore(storeWorkspaceSetting.GetStorageSetting()),
 		}
-	case *storepb.WorkspaceSetting_MemoRelatedSetting:
+	case storepb.WorkspaceSettingKey_MEMO_RELATED:
 		workspaceSetting.Value = &v1pb.WorkspaceSetting_MemoRelatedSetting{
-			MemoRelatedSetting: convertWorkspaceMemoRelatedSettingFromStore(setting.GetMemoRelatedSetting()),
+			MemoRelatedSetting: convertWorkspaceMemoRelatedSettingFromStore(storeWorkspaceSetting.GetMemoRelatedSetting()),
+		}
+	case storepb.WorkspaceSettingKey_SEMANTIC:
+		workspaceSetting.Value = &v1pb.WorkspaceSetting_SemanticSetting{
+			SemanticSetting: convertWorkspaceSemanticSettingFromStore(storeWorkspaceSetting.GetSemanticSetting()),
 		}
 	}
+
 	return workspaceSetting
 }
 
@@ -103,9 +196,6 @@ func convertWorkspaceSettingToStore(setting *v1pb.WorkspaceSetting) *storepb.Wor
 	settingKeyString, _ := ExtractWorkspaceSettingKeyFromName(setting.Name)
 	workspaceSetting := &storepb.WorkspaceSetting{
 		Key: storepb.WorkspaceSettingKey(storepb.WorkspaceSettingKey_value[settingKeyString]),
-		Value: &storepb.WorkspaceSetting_GeneralSetting{
-			GeneralSetting: convertWorkspaceGeneralSettingToStore(setting.GetGeneralSetting()),
-		},
 	}
 	switch workspaceSetting.Key {
 	case storepb.WorkspaceSettingKey_GENERAL:
@@ -120,8 +210,37 @@ func convertWorkspaceSettingToStore(setting *v1pb.WorkspaceSetting) *storepb.Wor
 		workspaceSetting.Value = &storepb.WorkspaceSetting_MemoRelatedSetting{
 			MemoRelatedSetting: convertWorkspaceMemoRelatedSettingToStore(setting.GetMemoRelatedSetting()),
 		}
+	case storepb.WorkspaceSettingKey_SEMANTIC:
+		workspaceSetting.Value = &storepb.WorkspaceSetting_SemanticSetting{
+			SemanticSetting: convertWorkspaceSemanticSettingToStore(setting.GetSemanticSetting()),
+		}
 	}
 	return workspaceSetting
+}
+
+// Add conversion functions for semantic settings
+func convertWorkspaceSemanticSettingFromStore(setting *storepb.WorkspaceSemanticSetting) *v1pb.WorkspaceSemanticSetting {
+	if setting == nil {
+		return nil
+	}
+	return &v1pb.WorkspaceSemanticSetting{
+		Enabled:        setting.Enabled,
+		ApiKey:         setting.ApiKey,
+		BaseUrl:        setting.BaseUrl,
+		EmbeddingModel: setting.EmbeddingModel,
+	}
+}
+
+func convertWorkspaceSemanticSettingToStore(setting *v1pb.WorkspaceSemanticSetting) *storepb.WorkspaceSemanticSetting {
+	if setting == nil {
+		return nil
+	}
+	return &storepb.WorkspaceSemanticSetting{
+		Enabled:        setting.Enabled,
+		ApiKey:         setting.ApiKey,
+		BaseUrl:        setting.BaseUrl,
+		EmbeddingModel: setting.EmbeddingModel,
+	}
 }
 
 func convertWorkspaceGeneralSettingFromStore(setting *storepb.WorkspaceGeneralSetting) *v1pb.WorkspaceGeneralSetting {

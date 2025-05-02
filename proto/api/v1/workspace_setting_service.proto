@@ -32,6 +32,7 @@ message WorkspaceSetting {
     WorkspaceGeneralSetting general_setting = 2;
     WorkspaceStorageSetting storage_setting = 3;
     WorkspaceMemoRelatedSetting memo_related_setting = 4;
+    WorkspaceSemanticSetting semantic_setting = 5;
   }
 }
 
@@ -120,6 +121,17 @@ message WorkspaceMemoRelatedSetting {
   bool enable_blur_nsfw_content = 12;
   // nsfw_tags is the list of tags that mark content as NSFW for blurring.
   repeated string nsfw_tags = 13;
+}
+
+message WorkspaceSemanticSetting {
+  // Determines whether semantic search is enabled.
+  bool enabled = 1;
+  // API key for the semantic search service.
+  string api_key = 2;
+  // Base URL for the semantic search service.
+  string base_url = 3;
+  // Model to use for embeddings.
+  string embedding_model = 4;
 }
 
 message GetWorkspaceSettingRequest {

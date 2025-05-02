@@ -37,6 +37,8 @@ func (s *Store) UpsertWorkspaceSetting(ctx context.Context, upsert *storepb.Work
 		valueBytes, err = protojson.Marshal(upsert.GetStorageSetting())
 	} else if upsert.Key == storepb.WorkspaceSettingKey_MEMO_RELATED {
 		valueBytes, err = protojson.Marshal(upsert.GetMemoRelatedSetting())
+	} else if upsert.Key == storepb.WorkspaceSettingKey_SEMANTIC {
+		valueBytes, err = protojson.Marshal(upsert.GetSemanticSetting())
 	} else {
 		return nil, errors.Errorf("unsupported workspace setting key: %v", upsert.Key)
 	}
@@ -208,6 +210,25 @@ func (s *Store) GetWorkspaceStorageSetting(ctx context.Context) (*storepb.Worksp
 	return workspaceStorageSetting, nil
 }
 
+func (s *Store) GetWorkspaceSemanticSetting(ctx context.Context) (*storepb.WorkspaceSemanticSetting, error) {
+	workspaceSetting, err := s.GetWorkspaceSetting(ctx, &FindWorkspaceSetting{
+		Name: storepb.WorkspaceSettingKey_SEMANTIC.String(),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get workspace semantic setting")
+	}
+
+	workspaceSemanticSetting := &storepb.WorkspaceSemanticSetting{}
+	if workspaceSetting != nil {
+		workspaceSemanticSetting = workspaceSetting.GetSemanticSetting()
+	}
+	s.workspaceSettingCache.Store(storepb.WorkspaceSettingKey_SEMANTIC.String(), &storepb.WorkspaceSetting{
+		Key:   storepb.WorkspaceSettingKey_SEMANTIC,
+		Value: &storepb.WorkspaceSetting_SemanticSetting{SemanticSetting: workspaceSemanticSetting},
+	})
+	return workspaceSemanticSetting, nil
+}
+
 func convertWorkspaceSettingFromRaw(workspaceSettingRaw *WorkspaceSetting) (*storepb.WorkspaceSetting, error) {
 	workspaceSetting := &storepb.WorkspaceSetting{
 		Key: storepb.WorkspaceSettingKey(storepb.WorkspaceSettingKey_value[workspaceSettingRaw.Name]),
@@ -237,6 +258,12 @@ func convertWorkspaceSettingFromRaw(workspaceSettingRaw *WorkspaceSetting) (*sto
 			return nil, err
 		}
 		workspaceSetting.Value = &storepb.WorkspaceSetting_MemoRelatedSetting{MemoRelatedSetting: memoRelatedSetting}
+	case storepb.WorkspaceSettingKey_SEMANTIC.String():
+		semanticSetting := &storepb.WorkspaceSemanticSetting{}
+		if err := protojsonUnmarshaler.Unmarshal([]byte(workspaceSettingRaw.Value), semanticSetting); err != nil {
+			return nil, err
+		}
+		workspaceSetting.Value = &storepb.WorkspaceSetting_SemanticSetting{SemanticSetting: semanticSetting}
 	default:
 		// Skip unsupported workspace setting key.
 		return nil, nil

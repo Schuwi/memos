@@ -18,6 +18,7 @@ export interface WorkspaceSetting {
   generalSetting?: WorkspaceGeneralSetting | undefined;
   storageSetting?: WorkspaceStorageSetting | undefined;
   memoRelatedSetting?: WorkspaceMemoRelatedSetting | undefined;
+  semanticSetting?: WorkspaceSemanticSetting | undefined;
 }
 
 export interface WorkspaceGeneralSetting {
@@ -150,6 +151,17 @@ export interface WorkspaceMemoRelatedSetting {
   nsfwTags: string[];
 }
 
+export interface WorkspaceSemanticSetting {
+  /** Determines whether semantic search is enabled. */
+  enabled: boolean;
+  /** API key for the semantic search service. */
+  apiKey: string;
+  /** Base URL for the semantic search service. */
+  baseUrl: string;
+  /** Model to use for embeddings. */
+  embeddingModel: string;
+}
+
 export interface GetWorkspaceSettingRequest {
   /**
    * The resource name of the workspace setting.
@@ -164,7 +176,13 @@ export interface SetWorkspaceSettingRequest {
 }
 
 function createBaseWorkspaceSetting(): WorkspaceSetting {
-  return { name: "", generalSetting: undefined, storageSetting: undefined, memoRelatedSetting: undefined };
+  return {
+    name: "",
+    generalSetting: undefined,
+    storageSetting: undefined,
+    memoRelatedSetting: undefined,
+    semanticSetting: undefined,
+  };
 }
 
 export const WorkspaceSetting: MessageFns<WorkspaceSetting> = {
@@ -180,6 +198,9 @@ export const WorkspaceSetting: MessageFns<WorkspaceSetting> = {
     }
     if (message.memoRelatedSetting !== undefined) {
       WorkspaceMemoRelatedSetting.encode(message.memoRelatedSetting, writer.uint32(34).fork()).join();
+    }
+    if (message.semanticSetting !== undefined) {
+      WorkspaceSemanticSetting.encode(message.semanticSetting, writer.uint32(42).fork()).join();
     }
     return writer;
   },
@@ -223,6 +244,14 @@ export const WorkspaceSetting: MessageFns<WorkspaceSetting> = {
           message.memoRelatedSetting = WorkspaceMemoRelatedSetting.decode(reader, reader.uint32());
           continue;
         }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.semanticSetting = WorkspaceSemanticSetting.decode(reader, reader.uint32());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -246,6 +275,9 @@ export const WorkspaceSetting: MessageFns<WorkspaceSetting> = {
       : undefined;
     message.memoRelatedSetting = (object.memoRelatedSetting !== undefined && object.memoRelatedSetting !== null)
       ? WorkspaceMemoRelatedSetting.fromPartial(object.memoRelatedSetting)
+      : undefined;
+    message.semanticSetting = (object.semanticSetting !== undefined && object.semanticSetting !== null)
+      ? WorkspaceSemanticSetting.fromPartial(object.semanticSetting)
       : undefined;
     return message;
   },
@@ -855,6 +887,88 @@ export const WorkspaceMemoRelatedSetting: MessageFns<WorkspaceMemoRelatedSetting
     message.disableMarkdownShortcuts = object.disableMarkdownShortcuts ?? false;
     message.enableBlurNsfwContent = object.enableBlurNsfwContent ?? false;
     message.nsfwTags = object.nsfwTags?.map((e) => e) || [];
+    return message;
+  },
+};
+
+function createBaseWorkspaceSemanticSetting(): WorkspaceSemanticSetting {
+  return { enabled: false, apiKey: "", baseUrl: "", embeddingModel: "" };
+}
+
+export const WorkspaceSemanticSetting: MessageFns<WorkspaceSemanticSetting> = {
+  encode(message: WorkspaceSemanticSetting, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.enabled !== false) {
+      writer.uint32(8).bool(message.enabled);
+    }
+    if (message.apiKey !== "") {
+      writer.uint32(18).string(message.apiKey);
+    }
+    if (message.baseUrl !== "") {
+      writer.uint32(26).string(message.baseUrl);
+    }
+    if (message.embeddingModel !== "") {
+      writer.uint32(34).string(message.embeddingModel);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): WorkspaceSemanticSetting {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseWorkspaceSemanticSetting();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.enabled = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.apiKey = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.baseUrl = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.embeddingModel = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  create(base?: DeepPartial<WorkspaceSemanticSetting>): WorkspaceSemanticSetting {
+    return WorkspaceSemanticSetting.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<WorkspaceSemanticSetting>): WorkspaceSemanticSetting {
+    const message = createBaseWorkspaceSemanticSetting();
+    message.enabled = object.enabled ?? false;
+    message.apiKey = object.apiKey ?? "";
+    message.baseUrl = object.baseUrl ?? "";
+    message.embeddingModel = object.embeddingModel ?? "";
     return message;
   },
 };

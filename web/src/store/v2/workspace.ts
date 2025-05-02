@@ -2,7 +2,12 @@ import { uniqBy } from "lodash-es";
 import { makeAutoObservable } from "mobx";
 import { workspaceServiceClient, workspaceSettingServiceClient } from "@/grpcweb";
 import { WorkspaceProfile } from "@/types/proto/api/v1/workspace_service";
-import { WorkspaceGeneralSetting, WorkspaceMemoRelatedSetting, WorkspaceSetting } from "@/types/proto/api/v1/workspace_setting_service";
+import {
+  WorkspaceGeneralSetting,
+  WorkspaceMemoRelatedSetting,
+  WorkspaceSetting,
+  WorkspaceSemanticSetting,
+} from "@/types/proto/api/v1/workspace_setting_service";
 import { isValidateLocale } from "@/utils/i18n";
 import { workspaceSettingNamePrefix } from "../v1";
 
@@ -15,6 +20,8 @@ export enum WorkspaceSettingKey {
   STORAGE = "STORAGE",
   /** MEMO_RELATED - MEMO_RELATED is the key for memo related settings. */
   MEMO_RELATED = "MEMO_RELATED",
+  /** SEMANTIC - SEMANTIC is the key for semantic search settings. */
+  SEMANTIC = "SEMANTIC",
 }
 
 class LocalState {
@@ -34,6 +41,13 @@ class LocalState {
     return (
       this.settings.find((setting) => setting.name === `${workspaceSettingNamePrefix}${WorkspaceSettingKey.MEMO_RELATED}`)
         ?.memoRelatedSetting || WorkspaceMemoRelatedSetting.fromPartial({})
+    );
+  }
+
+  get semanticSetting() {
+    return (
+      this.settings.find((setting) => setting.name === `${workspaceSettingNamePrefix}${WorkspaceSettingKey.SEMANTIC}`)?.semanticSetting ||
+      WorkspaceSemanticSetting.fromPartial({})
     );
   }
 
@@ -89,9 +103,15 @@ const workspaceStore = (() => {
 
 export const initialWorkspaceStore = async () => {
   const workspaceProfile = await workspaceServiceClient.getWorkspaceProfile({});
-  // Prepare workspace settings.
-  for (const key of [WorkspaceSettingKey.GENERAL, WorkspaceSettingKey.MEMO_RELATED]) {
-    await workspaceStore.fetchWorkspaceSetting(key);
+
+  // Always fetch these settings for all users
+  const commonSettings = [WorkspaceSettingKey.GENERAL, WorkspaceSettingKey.MEMO_RELATED, WorkspaceSettingKey.SEMANTIC];
+  for (const key of commonSettings) {
+    try {
+      await workspaceStore.fetchWorkspaceSetting(key);
+    } catch (error) {
+      console.error(`Failed to fetch ${key} setting:`, error);
+    }
   }
 
   const workspaceGeneralSetting = workspaceStore.state.generalSetting;

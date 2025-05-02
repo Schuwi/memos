@@ -1,15 +1,17 @@
 import { Tooltip } from "@mui/joy";
-import { BellIcon, PaperclipIcon, SettingsIcon, UserCircleIcon } from "lucide-react";
+import { BellIcon, PaperclipIcon, SettingsIcon, UserCircleIcon, SearchIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import useCurrentUser from "@/hooks/useCurrentUser";
+import useSemanticSearchAvailability from "@/hooks/useSemanticSearchAvailability";
 import { Routes } from "@/router";
 import { userStore } from "@/store/v2";
 import { Inbox_Status } from "@/types/proto/api/v1/inbox_service";
 import { cn } from "@/utils";
 import { useTranslate } from "@/utils/i18n";
 import BrandBanner from "./BrandBanner";
+import showSemanticSearchDialog from "./SemanticSearchDialog";
 import UserBanner from "./UserBanner";
 
 interface NavLinkItem {
@@ -29,6 +31,7 @@ const Navigation = observer((props: Props) => {
   const t = useTranslate();
   const currentUser = useCurrentUser();
   const hasUnreadInbox = userStore.state.inboxes.some((inbox) => inbox.status === Inbox_Status.UNREAD);
+  const isSemanticSearchEnabled = useSemanticSearchAvailability();
 
   useEffect(() => {
     if (!currentUser) {
@@ -107,6 +110,31 @@ const Navigation = observer((props: Props) => {
             {!props.collapsed && <span className="ml-3 truncate">{navLink.title}</span>}
           </NavLink>
         ))}
+
+        {isSemanticSearchEnabled && (
+          <>
+            <button
+              className={cn(
+                "px-2 py-2 rounded-2xl border flex flex-row items-center text-lg text-gray-800 dark:text-gray-400 hover:bg-white hover:border-gray-200 dark:hover:border-zinc-700 dark:hover:bg-zinc-800",
+                collapsed ? "" : "w-full px-4",
+              )}
+              onClick={showSemanticSearchDialog}
+            >
+              {props.collapsed ? (
+                <Tooltip title={t("common.semantic-search")} placement="right" arrow>
+                  <div>
+                    <SearchIcon className="w-6 h-auto opacity-70 shrink-0" />
+                  </div>
+                </Tooltip>
+              ) : (
+                <>
+                  <SearchIcon className="w-6 h-auto opacity-70 shrink-0" />
+                  <span className="ml-3 truncate">{t("common.semantic-search")}</span>
+                </>
+              )}
+            </button>
+          </>
+        )}
       </div>
       {currentUser && <UserBanner collapsed={collapsed} />}
     </header>

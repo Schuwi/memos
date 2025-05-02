@@ -20,22 +20,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MemoService_CreateMemo_FullMethodName         = "/memos.api.v1.MemoService/CreateMemo"
-	MemoService_ListMemos_FullMethodName          = "/memos.api.v1.MemoService/ListMemos"
-	MemoService_GetMemo_FullMethodName            = "/memos.api.v1.MemoService/GetMemo"
-	MemoService_UpdateMemo_FullMethodName         = "/memos.api.v1.MemoService/UpdateMemo"
-	MemoService_DeleteMemo_FullMethodName         = "/memos.api.v1.MemoService/DeleteMemo"
-	MemoService_RenameMemoTag_FullMethodName      = "/memos.api.v1.MemoService/RenameMemoTag"
-	MemoService_DeleteMemoTag_FullMethodName      = "/memos.api.v1.MemoService/DeleteMemoTag"
-	MemoService_SetMemoResources_FullMethodName   = "/memos.api.v1.MemoService/SetMemoResources"
-	MemoService_ListMemoResources_FullMethodName  = "/memos.api.v1.MemoService/ListMemoResources"
-	MemoService_SetMemoRelations_FullMethodName   = "/memos.api.v1.MemoService/SetMemoRelations"
-	MemoService_ListMemoRelations_FullMethodName  = "/memos.api.v1.MemoService/ListMemoRelations"
-	MemoService_CreateMemoComment_FullMethodName  = "/memos.api.v1.MemoService/CreateMemoComment"
-	MemoService_ListMemoComments_FullMethodName   = "/memos.api.v1.MemoService/ListMemoComments"
-	MemoService_ListMemoReactions_FullMethodName  = "/memos.api.v1.MemoService/ListMemoReactions"
-	MemoService_UpsertMemoReaction_FullMethodName = "/memos.api.v1.MemoService/UpsertMemoReaction"
-	MemoService_DeleteMemoReaction_FullMethodName = "/memos.api.v1.MemoService/DeleteMemoReaction"
+	MemoService_CreateMemo_FullMethodName          = "/memos.api.v1.MemoService/CreateMemo"
+	MemoService_ListMemos_FullMethodName           = "/memos.api.v1.MemoService/ListMemos"
+	MemoService_GetMemo_FullMethodName             = "/memos.api.v1.MemoService/GetMemo"
+	MemoService_UpdateMemo_FullMethodName          = "/memos.api.v1.MemoService/UpdateMemo"
+	MemoService_DeleteMemo_FullMethodName          = "/memos.api.v1.MemoService/DeleteMemo"
+	MemoService_RenameMemoTag_FullMethodName       = "/memos.api.v1.MemoService/RenameMemoTag"
+	MemoService_DeleteMemoTag_FullMethodName       = "/memos.api.v1.MemoService/DeleteMemoTag"
+	MemoService_SetMemoResources_FullMethodName    = "/memos.api.v1.MemoService/SetMemoResources"
+	MemoService_ListMemoResources_FullMethodName   = "/memos.api.v1.MemoService/ListMemoResources"
+	MemoService_SetMemoRelations_FullMethodName    = "/memos.api.v1.MemoService/SetMemoRelations"
+	MemoService_ListMemoRelations_FullMethodName   = "/memos.api.v1.MemoService/ListMemoRelations"
+	MemoService_CreateMemoComment_FullMethodName   = "/memos.api.v1.MemoService/CreateMemoComment"
+	MemoService_ListMemoComments_FullMethodName    = "/memos.api.v1.MemoService/ListMemoComments"
+	MemoService_ListMemoReactions_FullMethodName   = "/memos.api.v1.MemoService/ListMemoReactions"
+	MemoService_UpsertMemoReaction_FullMethodName  = "/memos.api.v1.MemoService/UpsertMemoReaction"
+	MemoService_DeleteMemoReaction_FullMethodName  = "/memos.api.v1.MemoService/DeleteMemoReaction"
+	MemoService_SemanticSearchMemos_FullMethodName = "/memos.api.v1.MemoService/SemanticSearchMemos"
 )
 
 // MemoServiceClient is the client API for MemoService service.
@@ -74,6 +75,8 @@ type MemoServiceClient interface {
 	UpsertMemoReaction(ctx context.Context, in *UpsertMemoReactionRequest, opts ...grpc.CallOption) (*Reaction, error)
 	// DeleteMemoReaction deletes a reaction for a memo.
 	DeleteMemoReaction(ctx context.Context, in *DeleteMemoReactionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// SemanticSearchMemos performs a semantic search on memos using embedding similarity.
+	SemanticSearchMemos(ctx context.Context, in *SemanticSearchMemosRequest, opts ...grpc.CallOption) (*SemanticSearchMemosResponse, error)
 }
 
 type memoServiceClient struct {
@@ -244,6 +247,16 @@ func (c *memoServiceClient) DeleteMemoReaction(ctx context.Context, in *DeleteMe
 	return out, nil
 }
 
+func (c *memoServiceClient) SemanticSearchMemos(ctx context.Context, in *SemanticSearchMemosRequest, opts ...grpc.CallOption) (*SemanticSearchMemosResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SemanticSearchMemosResponse)
+	err := c.cc.Invoke(ctx, MemoService_SemanticSearchMemos_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MemoServiceServer is the server API for MemoService service.
 // All implementations must embed UnimplementedMemoServiceServer
 // for forward compatibility.
@@ -280,6 +293,8 @@ type MemoServiceServer interface {
 	UpsertMemoReaction(context.Context, *UpsertMemoReactionRequest) (*Reaction, error)
 	// DeleteMemoReaction deletes a reaction for a memo.
 	DeleteMemoReaction(context.Context, *DeleteMemoReactionRequest) (*emptypb.Empty, error)
+	// SemanticSearchMemos performs a semantic search on memos using embedding similarity.
+	SemanticSearchMemos(context.Context, *SemanticSearchMemosRequest) (*SemanticSearchMemosResponse, error)
 	mustEmbedUnimplementedMemoServiceServer()
 }
 
@@ -337,6 +352,9 @@ func (UnimplementedMemoServiceServer) UpsertMemoReaction(context.Context, *Upser
 }
 func (UnimplementedMemoServiceServer) DeleteMemoReaction(context.Context, *DeleteMemoReactionRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMemoReaction not implemented")
+}
+func (UnimplementedMemoServiceServer) SemanticSearchMemos(context.Context, *SemanticSearchMemosRequest) (*SemanticSearchMemosResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SemanticSearchMemos not implemented")
 }
 func (UnimplementedMemoServiceServer) mustEmbedUnimplementedMemoServiceServer() {}
 func (UnimplementedMemoServiceServer) testEmbeddedByValue()                     {}
@@ -647,6 +665,24 @@ func _MemoService_DeleteMemoReaction_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemoService_SemanticSearchMemos_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SemanticSearchMemosRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoServiceServer).SemanticSearchMemos(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoService_SemanticSearchMemos_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoServiceServer).SemanticSearchMemos(ctx, req.(*SemanticSearchMemosRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MemoService_ServiceDesc is the grpc.ServiceDesc for MemoService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -717,6 +753,10 @@ var MemoService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMemoReaction",
 			Handler:    _MemoService_DeleteMemoReaction_Handler,
+		},
+		{
+			MethodName: "SemanticSearchMemos",
+			Handler:    _MemoService_SemanticSearchMemos_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
