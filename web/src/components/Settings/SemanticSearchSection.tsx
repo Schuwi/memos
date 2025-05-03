@@ -73,6 +73,14 @@ const SemanticSearchSection = () => {
 
   const handleSaveBtnClick = async () => {
     try {
+      // Show confirmation dialog if embedding model has changed
+      if (workspaceSemanticSetting.embeddingModel !== initialWorkspaceSemanticSetting.embeddingModel) {
+        const confirmed = window.confirm(t("setting.semantic-search-section.model-change-confirmation"));
+        if (!confirmed) {
+          return;
+        }
+      }
+
       await workspaceStore.upsertWorkspaceSetting({
         name: `${workspaceSettingNamePrefix}${WorkspaceSettingKey.SEMANTIC}`,
         semanticSetting: workspaceSemanticSetting,
