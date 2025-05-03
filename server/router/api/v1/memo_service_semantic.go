@@ -19,7 +19,7 @@ import (
 var (
 	semanticSearcher    *semantic.VectorIndex
 	semanticSearchMutex sync.Mutex
-	isIndexed           bool
+	isIndexed           map[int32]bool
 )
 
 // InitSemanticSearch initializes the semantic search engine with the provided configuration.
@@ -30,19 +30,19 @@ func InitSemanticSearch(config semantic.Config) error {
 	embeddingClient := semantic.NewEmbeddingClient(config.APIKey, config.BaseURL, config.EmbeddingModel, config.QueryInstruction)
 	semanticSearcher = semantic.NewVectorIndex(embeddingClient)
 
-	isIndexed = false
+	isIndexed = make(map[int32]bool)
 	return nil
 }
 
 // GetSemanticSearcher returns the semantic search engine instance.
-func GetSemanticSearcher() *semantic.VectorIndex {
+func (s *APIV1Service) GetSemanticSearcher() *semantic.VectorIndex {
 	semanticSearchMutex.Lock()
 	defer semanticSearchMutex.Unlock()
 	return semanticSearcher
 }
 
 // IsSemanticSearchEnabled returns true if the semantic search engine is initialized.
-func IsSemanticSearchEnabled() bool {
+func (s *APIV1Service) IsSemanticSearchEnabled() bool {
 	semanticSearchMutex.Lock()
 	defer semanticSearchMutex.Unlock()
 	return semanticSearcher != nil
@@ -53,7 +53,7 @@ func (s *APIV1Service) ensureIndex(ctx context.Context, userID int32) error {
 	semanticSearchMutex.Lock()
 	defer semanticSearchMutex.Unlock()
 
-	if isIndexed {
+	if isIndexed[userID] {
 		return nil
 	}
 
@@ -74,20 +74,7 @@ func (s *APIV1Service) ensureIndex(ctx context.Context, userID int32) error {
 	// Convert all memos to documents
 	docs := make([]*semantic.Document, 0, len(memos))
 	for _, memo := range memos {
-		metadata := map[string]interface{}{
-			"hasLink":            memo.Payload.Property.HasLink,
-			"hasTaskList":        memo.Payload.Property.HasTaskList,
-			"hasCode":            memo.Payload.Property.HasCode,
-			"hasIncompleteTasks": memo.Payload.Property.HasIncompleteTasks,
-			"tags":               memo.Payload.Tags,
-			"memo_id":            memo.ID,
-		}
-
-		docu := &semantic.Document{
-			ID:       memo.UID,
-			Content:  memo.Content,
-			Metadata: metadata,
-		}
+		docu := semantic.CreateDocumentFromMemo(memo);
 		docs = append(docs, docu)
 	}
 
@@ -96,17 +83,17 @@ func (s *APIV1Service) ensureIndex(ctx context.Context, userID int32) error {
 		slog.Error("Failed to index memos", "error", err)
 	}
 
-	isIndexed = true
+	isIndexed[userID] = true
 	return nil
 }
 
 // SemanticSearchMemos implements the semantic search RPC.
 func (s *APIV1Service) SemanticSearchMemos(ctx context.Context, request *v1pb.SemanticSearchMemosRequest) (*v1pb.SemanticSearchMemosResponse, error) {
-	if !IsSemanticSearchEnabled() {
+	if !s.IsSemanticSearchEnabled() {
 		return nil, status.Errorf(codes.FailedPrecondition, "semantic search is not enabled")
 	}
 
-	searcher := GetSemanticSearcher()
+	searcher := s.GetSemanticSearcher()
 
 	currentUser, err := s.GetCurrentUser(ctx)
 	if err != nil {
@@ -142,11 +129,7 @@ func (s *APIV1Service) SemanticSearchMemos(ctx context.Context, request *v1pb.Se
 
 	for _, result := range results {
 		// Extract memo ID from metadata
-		memoID, ok := result.Metadata["memo_id"].(int32)
-		if !ok {
-			slog.Warn("Invalid memo_id in semantic search result", "uid", result.ID)
-			continue
-		}
+		memoID := result.ID
 
 		// Get the full memo
 		memo, err := s.Store.GetMemo(ctx, &store.FindMemo{

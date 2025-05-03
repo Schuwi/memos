@@ -19,6 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/usememos/memos/plugin/semantic"
 	"github.com/usememos/memos/plugin/webhook"
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	storepb "github.com/usememos/memos/proto/gen/store"
@@ -79,6 +80,12 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 		})
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to set memo relations")
+		}
+	}
+	if s.IsSemanticSearchEnabled() {
+		semanticSearcher := s.GetSemanticSearcher()
+		if err := semanticSearcher.AddDocument(ctx, semantic.CreateDocumentFromMemo(memo)); err != nil {
+			slog.Error("Failed to add document to semantic searcher", "error", err)
 		}
 	}
 
@@ -347,6 +354,19 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get memo")
 	}
+
+	if s.IsSemanticSearchEnabled() {
+		semanticSearcher := s.GetSemanticSearcher()
+
+		// Remove the old document and add the updated one.
+		// Ignore the error if the document is not found (-> not yet indexed).
+		_ = semanticSearcher.RemoveDocument(memo.ID)
+		err = semanticSearcher.AddDocument(ctx, semantic.CreateDocumentFromMemo(memo))
+		if err != nil {
+			slog.Error("Failed to add document to semantic searcher", "error", err)
+		}
+	}
+
 	memoMessage, err := s.convertMemoFromStore(ctx, memo)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to convert memo")
@@ -392,6 +412,13 @@ func (s *APIV1Service) DeleteMemo(ctx context.Context, request *v1pb.DeleteMemoR
 
 	if err = s.Store.DeleteMemo(ctx, &store.DeleteMemo{ID: memo.ID}); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to delete memo")
+	}
+
+	// Delete index from semantic searcher
+	if s.IsSemanticSearchEnabled() {
+		semanticSearcher := s.GetSemanticSearcher()
+		// Ignore the error if the document is not found (-> not indexed)
+		_ = semanticSearcher.RemoveDocument(memo.ID)
 	}
 
 	// Delete memo relation

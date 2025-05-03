@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/coder/hnsw"
+	"github.com/usememos/memos/store"
 )
 
 const (
@@ -31,19 +32,37 @@ type Config struct {
 
 // Document represents a document to be indexed for semantic search.
 type Document struct {
-	ID       string                 // Unique identifier
+	ID       int32                  // Unique identifier
 	Content  string                 // Text content for embedding
 	Metadata map[string]interface{} // Additional metadata
 	Vector   []float32              // Embedding vector
+}
+
+// Helper function to create a new document from a memo
+func CreateDocumentFromMemo(memo *store.Memo) *Document {
+	metadata := map[string]any{
+		"hasLink":            memo.Payload.Property.HasLink,
+		"hasTaskList":        memo.Payload.Property.HasTaskList,
+		"hasCode":            memo.Payload.Property.HasCode,
+		"hasIncompleteTasks": memo.Payload.Property.HasIncompleteTasks,
+		"tags":               memo.Payload.Tags,
+		"memo_uid":           memo.UID,
+	}
+
+	return &Document{
+		ID:       memo.ID,
+		Content:  memo.Content,
+		Metadata: metadata,
+	}
 }
 
 // VectorIndex manages embeddings and provides semantic search capabilities.
 type VectorIndex struct {
 	client     *EmbeddingClient
 	index      *hnsw.Graph[int]
-	documents  map[string]*Document
-	idToNodeID map[string]int
-	nodeIDToID map[int]string
+	documents  map[int32]*Document
+	idToNodeID map[int32]int
+	nodeIDToID map[int]int32
 	mu         sync.RWMutex
 	nextNodeID int
 }
@@ -51,7 +70,7 @@ type VectorIndex struct {
 // SearchResult represents a result from a semantic search
 type SearchResult struct {
 	// ID is the unique identifier of the document
-	ID string
+	ID int32
 	// Score is the similarity score (higher is more similar)
 	Score float32
 	// Metadata is additional metadata about the document
@@ -65,19 +84,15 @@ func NewVectorIndex(client *EmbeddingClient) *VectorIndex {
 	return &VectorIndex{
 		client:     client,
 		index:      index,
-		documents:  make(map[string]*Document),
-		idToNodeID: make(map[string]int),
-		nodeIDToID: make(map[int]string),
+		documents:  make(map[int32]*Document),
+		idToNodeID: make(map[int32]int),
+		nodeIDToID: make(map[int]int32),
 		nextNodeID: 0,
 	}
 }
 
 // AddDocument adds a document to the index.
 func (vi *VectorIndex) AddDocument(ctx context.Context, doc *Document) error {
-	if doc.ID == "" {
-		return errors.New("document ID cannot be empty")
-	}
-
 	if doc.Content == "" {
 		return errors.New("document content cannot be empty")
 	}
@@ -126,11 +141,8 @@ func (vi *VectorIndex) AddDocuments(ctx context.Context, docs []*Document) error
 	// Extract content for batch embedding
 	contents := make([]string, len(docs))
 	for i, doc := range docs {
-		if doc.ID == "" {
-			return fmt.Errorf("document at index %d has empty ID", i)
-		}
 		if doc.Content == "" {
-			return fmt.Errorf("document with ID %s has empty content", doc.ID)
+			return fmt.Errorf("document with ID %d has empty content", doc.ID)
 		}
 		contents[i] = doc.Content
 	}
@@ -172,12 +184,12 @@ func (vi *VectorIndex) AddDocuments(ctx context.Context, docs []*Document) error
 }
 
 // RemoveDocument removes a document from the index.
-func (vi *VectorIndex) RemoveDocument(docID string) error {
+func (vi *VectorIndex) RemoveDocument(docID int32) error {
 	vi.mu.Lock()
 	defer vi.mu.Unlock()
 
 	if _, exists := vi.documents[docID]; !exists {
-		return fmt.Errorf("document with ID %s not found", docID)
+		return fmt.Errorf("document with ID %d not found", docID)
 	}
 
 	nodeID := vi.idToNodeID[docID]

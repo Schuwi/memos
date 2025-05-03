@@ -149,7 +149,7 @@ func (s *APIV1Service) SetWorkspaceSetting(ctx context.Context, request *v1pb.Se
 				slog.Info("Disabling semantic search")
 				semanticSearchMutex.Lock()
 				semanticSearcher = nil
-				isIndexed = false
+				isIndexed = make(map[int32]bool)
 				semanticSearchMutex.Unlock()
 			}
 		}
