@@ -80,6 +80,7 @@ func (s *APIV1Service) GetWorkspaceSetting(ctx context.Context, request *v1pb.Ge
 							ApiKey:         "",
 							BaseUrl:        "",
 							EmbeddingModel: "",
+							QueryInstruction: "",
 						},
 					},
 				}, nil
@@ -230,6 +231,7 @@ func convertWorkspaceSemanticSettingFromStore(setting *storepb.WorkspaceSemantic
 		ApiKey:         setting.ApiKey,
 		BaseUrl:        setting.BaseUrl,
 		EmbeddingModel: setting.EmbeddingModel,
+		QueryInstruction: setting.QueryInstruction,
 	}
 }
 
@@ -242,6 +244,7 @@ func convertWorkspaceSemanticSettingToStore(setting *v1pb.WorkspaceSemanticSetti
 		ApiKey:         setting.ApiKey,
 		BaseUrl:        setting.BaseUrl,
 		EmbeddingModel: setting.EmbeddingModel,
+		QueryInstruction: setting.QueryInstruction,
 	}
 }
 
