@@ -146,10 +146,7 @@ const SemanticSearchSection = () => {
           <div className="form-label mt-4">
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium">{t("setting.semantic-search-section.query-instruction") || "Query Instruction"}</span>
-              <p className="text-xs text-gray-500">
-                {t("setting.semantic-search-section.query-instruction-description") ||
-                  "Custom instruction prepended to search queries to improve semantic search results."}
-              </p>
+              <p className="text-xs text-gray-500">{t("setting.semantic-search-section.query-instruction-description")}</p>
               <textarea
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 rows={4}

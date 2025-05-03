@@ -304,7 +304,7 @@
       "embedding-model": "Embedding model",
       "embeddings": "Learn more about embeddings",
       "query-instruction": "Query Instruction",
-      "query-instruction-description": "Custom instruction prepended to search queries to improve semantic search results.",
+      "query-instruction-description": "Custom instruction prepended to user search queries to tune search results - expected by some models.",
       "model-change-confirmation": "Changing the embedding model will require re-indexing all notes. Are you sure you want to continue?"
     },
     "sso": "SSO",
