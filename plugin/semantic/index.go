@@ -121,6 +121,12 @@ func (vi *VectorIndex) AddDocument(ctx context.Context, doc *Document) error {
 	nodeID := vi.nextNodeID
 	vi.nextNodeID++
 
+	// Check if this is the first document being added after all documents were deleted
+	// Workaround for https://github.com/coder/hnsw/issues/10
+	if vi.index.Len() == 0 {
+		// Safe initialization of a new graph when empty
+		vi.index = hnsw.NewGraph[int]()
+	}
 	// Add to HNSW index with proper type conversion
 	vi.index.Add(hnsw.MakeNode(nodeID, embedding))
 
@@ -155,6 +161,13 @@ func (vi *VectorIndex) AddDocuments(ctx context.Context, docs []*Document) error
 
 	vi.mu.Lock()
 	defer vi.mu.Unlock()
+
+	// Check if this is the first document being added after all documents were deleted
+	// Workaround for https://github.com/coder/hnsw/issues/10
+	if vi.index.Len() == 0 {
+		// Safe initialization of a new graph when empty
+		vi.index = hnsw.NewGraph[int]()
+	}
 
 	for i, doc := range docs {
 		// Store the embedding in the document

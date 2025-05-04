@@ -358,9 +358,6 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 	if s.IsSemanticSearchEnabled() {
 		semanticSearcher := s.GetSemanticSearcher()
 
-		// Remove the old document and add the updated one.
-		// Ignore the error if the document is not found (-> not yet indexed).
-		_ = semanticSearcher.RemoveDocument(memo.ID)
 		err = semanticSearcher.AddDocument(ctx, semantic.CreateDocumentFromMemo(memo))
 		if err != nil {
 			slog.Error("Failed to add document to semantic searcher", "error", err)
