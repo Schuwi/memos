@@ -101,14 +101,16 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	muxServer := cmux.New(listener)
+	// Create listeners outside of the goroutines to avoid data race.
+	grpcListener := muxServer.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
+	httpListener := muxServer.Match(cmux.HTTP1Fast(http.MethodPatch))
+
 	go func() {
-		grpcListener := muxServer.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
 		if err := s.grpcServer.Serve(grpcListener); err != nil {
 			slog.Error("failed to serve gRPC", "error", err)
 		}
 	}()
 	go func() {
-		httpListener := muxServer.Match(cmux.HTTP1Fast(http.MethodPatch))
 		s.echoServer.Listener = httpListener
 		if err := s.echoServer.Start(address); err != nil {
 			slog.Error("failed to start echo server", "error", err)
