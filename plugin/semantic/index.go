@@ -34,7 +34,7 @@ type VectorIndex struct {
 	db         *chromem.DB
 	collection *chromem.Collection
 	mu         sync.RWMutex
-	config     Config
+	client    *EmbeddingClient
 }
 
 // SearchResult represents a result from a semantic search
@@ -71,7 +71,7 @@ func NewVectorIndex(client *EmbeddingClient) *VectorIndex {
 	return &VectorIndex{
 		db:         db,
 		collection: collection,
-		config:     client.config,
+		client:     client,
 	}
 }
 
@@ -123,7 +123,21 @@ func (vi *VectorIndex) AddDocuments(ctx context.Context, memos []*store.Memo) er
 		})
 	}
 
-	err := vi.collection.AddDocuments(ctx, docs, 1)
+	// Pre-calculate embeddings for all documents to avoid multiple API calls
+	// This is a workaround for chromem's current limitation of not supporting batch embedding
+	contents := make([]string, len(memos))
+	for i, memo := range memos {
+		contents[i] = memo.Content
+	}
+	embeddings, err := vi.client.GetBatchEmbeddings(ctx, contents)
+	if err != nil {
+		return fmt.Errorf("failed to get batch embeddings: %w", err)
+	}
+	for i, _ := range docs {
+		docs[i].Embedding = embeddings[i]
+	}
+
+	err = vi.collection.AddDocuments(ctx, docs, 8)
 
 	return err
 }
@@ -145,7 +159,7 @@ func (vi *VectorIndex) Search(ctx context.Context, queryText string, limit int, 
 	}
 
 	// Use the configured query instruction
-	queryInstruction := vi.config.QueryInstruction
+	queryInstruction := vi.client.config.QueryInstruction
 	fullQuery := queryInstruction + queryText
 
 	vi.mu.RLock()
