@@ -19,7 +19,6 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/usememos/memos/plugin/semantic"
 	"github.com/usememos/memos/plugin/webhook"
 	v1pb "github.com/usememos/memos/proto/gen/api/v1"
 	storepb "github.com/usememos/memos/proto/gen/store"
@@ -84,7 +83,7 @@ func (s *APIV1Service) CreateMemo(ctx context.Context, request *v1pb.CreateMemoR
 	}
 	if s.IsSemanticSearchEnabled() {
 		semanticSearcher := s.GetSemanticSearcher()
-		if err := semanticSearcher.AddDocument(ctx, semantic.CreateDocumentFromMemo(memo)); err != nil {
+		if err := semanticSearcher.AddDocument(ctx, memo); err != nil {
 			slog.Error("Failed to add document to semantic searcher", "error", err)
 		}
 	}
@@ -358,7 +357,7 @@ func (s *APIV1Service) UpdateMemo(ctx context.Context, request *v1pb.UpdateMemoR
 	if s.IsSemanticSearchEnabled() {
 		semanticSearcher := s.GetSemanticSearcher()
 
-		err = semanticSearcher.AddDocument(ctx, semantic.CreateDocumentFromMemo(memo))
+		err = semanticSearcher.AddDocument(ctx, memo)
 		if err != nil {
 			slog.Error("Failed to add document to semantic searcher", "error", err)
 		}
@@ -415,7 +414,7 @@ func (s *APIV1Service) DeleteMemo(ctx context.Context, request *v1pb.DeleteMemoR
 	if s.IsSemanticSearchEnabled() {
 		semanticSearcher := s.GetSemanticSearcher()
 		// Ignore the error if the document is not found (-> not indexed)
-		_ = semanticSearcher.RemoveDocument(memo.ID)
+		_ = semanticSearcher.RemoveDocument(ctx, memo.ID)
 	}
 
 	// Delete memo relation

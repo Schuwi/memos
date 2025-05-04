@@ -71,15 +71,8 @@ func (s *APIV1Service) ensureIndex(ctx context.Context, userID int32) error {
 		return errors.Wrap(err, "failed to list memos")
 	}
 
-	// Convert all memos to documents
-	docs := make([]*semantic.Document, 0, len(memos))
-	for _, memo := range memos {
-		docu := semantic.CreateDocumentFromMemo(memo);
-		docs = append(docs, docu)
-	}
-
 	// Index all memos using AddDocuments
-	if err := semanticSearcher.AddDocuments(ctx, docs); err != nil {
+	if err := semanticSearcher.AddDocuments(ctx, memos); err != nil {
 		slog.Error("Failed to index memos", "error", err)
 	}
 
@@ -117,7 +110,7 @@ func (s *APIV1Service) SemanticSearchMemos(ctx context.Context, request *v1pb.Se
 	}
 
 	// Perform the semantic search
-	results, err := searcher.Search(ctx, request.Query, limit)
+	results, err := searcher.Search(ctx, request.Query, limit, userID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "semantic search failed: %v", err)
 	}
